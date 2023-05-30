@@ -1,0 +1,34 @@
+# See http://help.github.com/ignore-files/ for more about ignoring files.
+
+# Compiled output
+/dist
+/build
+
+# Node
+/node_modules
+npm-debug.log
+
+# IDEs and editors
+.idea/
+.vscode
+
+# Visual Studio Code
+.vscode/*
+
+# Miscellaneous
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+
+# dotenv environment variables file
+.env
+.env.test
+.env.development
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Task Folder
+/README
