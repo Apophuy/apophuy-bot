@@ -9,7 +9,6 @@ export async function removeFile(path: string) {
     console.error('Error while removing file', e.message);
   }
 }
-// ! Не то.
 export interface SessionData {
   messages: ChatCompletionRequestMessage[];
 }

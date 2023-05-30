@@ -1,26 +1,26 @@
 import 'dotenv/config';
-import { ChatCompletionRequestMessage, ChatCompletionRequestMessageRoleEnum } from 'openai';
-import { Context, Telegraf, session } from 'telegraf';
+import { ChatCompletionRequestMessageRoleEnum } from 'openai';
+import { Telegraf, session } from 'telegraf';
 import { message } from 'telegraf/filters';
 import { code } from 'telegraf/format';
-import { Update } from 'telegraf/types';
 import { openai } from './openai.js';
+import { BotContext } from './utils.js';
 import { ogg } from './voice.js';
 
 const INITIAL_SESSION = {
-  message: [],
+  messages: [],
 };
 
-const bot: Telegraf<Context<Update>> = new Telegraf(process.env.TELEGRAM_TOKEN as string);
+const bot: Telegraf<BotContext> = new Telegraf(process.env.TELEGRAM_TOKEN as string);
 
 bot.use(session());
 
 bot.command('new', async (ctx) => {
-  // ctx.session = INITIAL_SESSION;
-  await ctx.reply('Жду Вашего голосового или текстового сообщения...');
+  ctx.session = INITIAL_SESSION;
+  await ctx.reply('Давай уже новую тему!');
 });
 bot.command('start', async (ctx) => {
-  // ctx.session = INITIAL_SESSION;
+  ctx.session = INITIAL_SESSION;
   await ctx.reply('Прювет');
 });
 
@@ -30,16 +30,19 @@ bot.command('quit', async (ctx) => {
 });
 
 bot.on(message('text'), async (ctx) => {
+  ctx.session ??= INITIAL_SESSION;
   try {
     const userId = String(ctx.message.from.id);
     if (process.env.PERMITTED_USERS?.includes(userId)) {
-      const messages: ChatCompletionRequestMessage[] = [
-        { role: ChatCompletionRequestMessageRoleEnum.User, content: ctx.message.text },
-      ];
-      const response = await openai.chat(messages);
+      ctx.session.messages.push({
+        role: ChatCompletionRequestMessageRoleEnum.Assistant,
+        content: ctx.message.text,
+      });
+      const response = await openai.chat(ctx.session.messages);
+
       await ctx.reply(response?.content || '');
     } else {
-      await ctx.reply('У вас нет доступа к этому боту | You do not have access to this bot');
+      await ctx.reply('Иди на хер | You do not have access to this bot');
     }
   } catch (e: any) {
     console.error('Error while text message', e.message);
@@ -47,7 +50,7 @@ bot.on(message('text'), async (ctx) => {
 });
 
 bot.on(message('voice'), async (ctx) => {
-  // ctx.session ??= INITIAL_SESSION;
+  ctx.session ??= INITIAL_SESSION;
   try {
     await ctx.reply(code('Сообщение принял. Жду ответ от сервера...'));
     const link = await ctx.telegram.getFileLink(ctx.message.voice.file_id);
@@ -58,14 +61,18 @@ bot.on(message('voice'), async (ctx) => {
 
       const text = await openai.transcription(mp3Path || '');
       await ctx.reply(code(`Ваш запрос: ${text}`));
-      const messages: ChatCompletionRequestMessage[] = [
-        { role: ChatCompletionRequestMessageRoleEnum.User, content: text },
-      ];
+      ctx.session.messages.push({ role: ChatCompletionRequestMessageRoleEnum.User, content: text });
 
-      const response = await openai.chat(messages);
+      const response = await openai.chat(ctx.session.messages);
+
+      ctx.session.messages.push({
+        role: ChatCompletionRequestMessageRoleEnum.Assistant,
+        content: response?.content || '',
+      });
+
       await ctx.reply(response?.content || '');
     } else {
-      await ctx.reply('У вас нет доступа к этому боту | You do not have access to this bot');
+      await ctx.reply('Иди на хер | You do not have access to this bot');
     }
   } catch (e: any) {
     console.error('Error while voice message', e.message);

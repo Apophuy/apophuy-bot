@@ -32,3 +32,6 @@ Thumbs.db
 
 # Task Folder
 /README
+
+# Temp files
+/temp/*
