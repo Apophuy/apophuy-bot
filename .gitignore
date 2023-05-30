@@ -35,3 +35,4 @@ Thumbs.db
 
 # Temp files
 /temp/*.mp3
+/temp/*.ogg
